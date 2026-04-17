@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini SaaS IA — Clasificador genérico</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0b0e13;
+      --surface: #13181f;
+      --surface2: #1c2330;
+      --border: #252d3a;
+      --accent: #4fffb0;
+      --accent2: #3b82f6;
+      --warn: #f59e0b;
+      --danger: #ff4f6b;
+      --text: #e8edf5;
+      --muted: #6b7a93;
+      --mono: 'DM Mono', monospace;
+      --sans: 'Sora', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: linear-gradient(rgba(79, 255, 176, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 255, 176, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    #root {
+      position: relative;
+      z-index: 1;
+    }
+
+    .layout {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: .05em;
+    }
+
+    .logo span {
+      color: var(--muted);
+    }
+
+    .nav-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+    }
+
+    /* STEPS */
+    .steps {
+      display: flex;
+      gap: 0;
+      margin: 36px 0 32px;
+    }
+
+    .step {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      transition: all .2s;
+    }
+
+    .step:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .step:last-child {
+      border-radius: 0 8px 8px 0;
+    }
+
+    .step+.step {
+      border-left: none;
+    }
+
+    .step.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(79, 255, 176, .05);
+    }
+
+    .step.done {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .step.active .step-num {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .step.done .step-num {
+      background: var(--accent2);
+      color: #fff;
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* UPLOAD */
+    .upload-zone {
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag {
+      border-color: var(--accent);
+      background: rgba(79, 255, 176, .03);
+    }
+
+    .upload-zone h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 8px 0 4px;
+    }
+
+    .upload-zone p {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .upload-icon {
+      font-size: 28px;
+      opacity: .5;
+    }
+
+    input[type=file] {
+      display: none;
+    }
+
+    /* COLUMN GRID */
+    .col-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    .col-card {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .15s;
+      background: var(--surface2);
+    }
+
+    .col-card:hover {
+      border-color: var(--accent);
+    }
+
+    .col-card.target {
+      border-color: var(--accent);
+      background: rgba(79, 255, 176, .06);
+    }
+
+    .col-card.dropped {
+      opacity: .4;
+      border-style: dashed;
+    }
+
+    .col-name {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .col-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+    }
+
+    .badge-num {
+      background: rgba(59, 130, 246, .15);
+      color: #93c5fd;
+    }
+
+    .badge-cat {
+      background: rgba(251, 146, 60, .15);
+      color: #fdba74;
+    }
+
+    .badge-numcat {
+      background: rgba(167, 139, 250, .15);
+      color: #c4b5fd;
+    }
+
+    .col-samples {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .col-missing {
+      font-size: 10px;
+      color: var(--warn);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    /* SUGGESTIONS */
+    .col-card.suggested-drop {
+      border-color: var(--warn);
+      background: rgba(245, 158, 11, 0.06);
+    }
+    .col-card.suggested-drop:hover {
+      border-color: var(--warn);
+    }
+
+    .suggestions-panel {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid var(--warn);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 16px 0;
+    }
+
+    .suggestion-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 12px;
+      font-family: var(--mono);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+    }
+
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-reason { color: var(--muted); font-size: 11px; }
+    .suggestion-confidence { color: var(--warn); font-weight: 500; }
+
+    /* AUTOCOMPLETE */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+
+    .autocomplete-options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .autocomplete-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .autocomplete-option:hover {
+      background: rgba(79, 255, 176, 0.1);
+    }
+
+    .autocomplete-option.selected {
+      background: var(--accent);
+      color: #000;
+      font-weight: 500;
+    }
+
+    /* PREVIEW TABLE */
+    .preview-wrap {
+      overflow-x: auto;
+      margin-top: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    th {
+      background: var(--surface2);
+      padding: 8px 12px;
+      text-align: left;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* METRICS */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .metric {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .metric-val {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .metric-lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-family: var(--mono);
+      letter-spacing: .06em;
+    }
+
+    /* FEAT BARS */
+    .feat-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .feat-name {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      width: 120px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feat-bg {
+      flex: 1;
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .feat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 3px;
+      transition: width .8s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .feat-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      width: 38px;
+      text-align: right;
+    }
+
+    /* PREDICT FORM */
+    .predict-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--accent);
+    }
+
+    .field select option {
+      background: var(--surface);
+    }
+
+    /* RESULT */
+    .result-box {
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      border: 1px solid;
+      margin-top: 16px;
+    }
+
+    .result-lbl {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .result-conf {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .prob-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .prob-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .prob-cls {
+      width: 120px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .prob-bg {
+      flex: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, .1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .prob-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width .6s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .prob-fill.top {
+      background: var(--accent);
+    }
+
+    .prob-fill.rest {
+      background: var(--accent2);
+    }
+
+    .prob-pct {
+      width: 40px;
+      text-align: right;
+    }
+
+    /* DIST BAR */
+    .dist-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .dist-label {
+      width: 120px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dist-bg {
+      flex: 1;
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .dist-fill {
+      height: 100%;
+      background: var(--accent2);
+      border-radius: 3px;
+    }
+
+    .dist-cnt {
+      width: 38px;
+      text-align: right;
+      color: var(--muted);
+    }
+
+    /* BTN */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      transition: all .15s;
+      font-weight: 500;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: #6bffc0;
+    }
+
+    .btn-primary:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 79, 107, .08);
+    }
+
+    /* LOG */
+    .log {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 12px;
+      max-height: 100px;
+      overflow-y: auto;
+      line-height: 1.8;
+    }
+
+    .log .ok {
+      color: var(--accent);
+    }
+
+    .log .err {
+      color: var(--danger);
+    }
+
+    .log .info {
+      color: var(--accent2);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(79, 255, 176, .3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(79, 255, 176, .1);
+      color: var(--accent);
+      border: 1px solid rgba(79, 255, 176, .2);
+    }
+
+    .sep {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .predict-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .step span {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useCallback } = React;
+    const API = "http://localhost:8000";
+
+    function App() {
+      const [step, setStep] = useState(1);   // 1=upload 2=config 3=trained 4=predict
+      const [analysis, setAnalysis] = useState(null); // resultado de /analyze
+      const [targetCol, setTargetCol] = useState("");
+      const [droppedCols, setDropped] = useState([]);   // columnas a ignorar
+      const [metrics, setMetrics] = useState(null);
+      const [loading, setLoading] = useState("");
+      const [logs, setLogs] = useState([]);
+      const [dragOver, setDragOver] = useState(false);
+      const [csvFile, setCsvFile] = useState(null); // guardamos el archivo para /train
+      const [formData, setFormData] = useState({});
+      const [prediction, setPrediction] = useState(null);
+      const [suggestions, setSuggestions] = useState([]);   // sugerencias de columnas a excluir
+      const [featureUniques, setFeatureUniques] = useState({});  // {column: [values]}
+      const [openAutocomplete, setOpenAutocomplete] = useState(null);  // null o nombre de columna
+      const fileRef = useRef();
+
+      const log = (msg, type = "info") => setLogs(l => [...l.slice(-10), { msg, type }]);
+
+      // ── Paso 1: Analizar CSV ───────────────────────────────────────────────────
+      const handleFile = async (file) => {
+        if (!file) return;
+        setCsvFile(file);
+        setLoading("analyze");
+        log(`Analizando ${file.name}...`);
+        const form = new FormData();
+        form.append("file", file);
+        try {
+          const res = await fetch(`${API}/analyze`, { method: "POST", body: form });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Error al analizar");
+          setAnalysis(data);
+          setTargetCol("");
+          setDropped([]);
+          setSuggestions([]);
+          log(`CSV analizado — ${data.rows} filas, ${data.columns} columnas`, "ok");
+
+          // Llamar a /suggest-drops para obtener sugerencias
+          const suggestForm = new FormData();
+          suggestForm.append("file", file);
+          fetch(`${API}/suggest-drops`, { method: "POST", body: suggestForm })
+            .then(r => r.json())
+            .then(data => {
+              setSuggestions(data.suggestions);
+              if (data.suggestions.length > 0) {
+                log(`⚠ ${data.suggestions.length} columnas sospechosas detectadas`, "info");
+              }
+            })
+            .catch(e => { /* silently fail if suggestions don't work */ });
+
+          setStep(2);
+        } catch (e) { log(e.message, "err"); }
+        finally { setLoading(""); }
+      };
+
+      // ── Paso 2: Entrenar ───────────────────────────────────────────────────────
+      const handleTrain = async () => {
+        if (!targetCol) return;
+        setLoading("train");
+        log(`Entrenando con target: "${targetCol}"...`);
+        const form = new FormData();
+        form.append("file", csvFile);
+        form.append("target_col", targetCol);
+        form.append("drop_cols", droppedCols.join(","));
+        try {
+          const res = await fetch(`${API}/train`, { method: "POST", body: form });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Error entrenando");
+          setMetrics(data.metrics);
+          setFeatureUniques(data.feature_uniques || {});
+          // Inicializar formulario de predicción con valores vacíos
+          const initialForm = {};
+          data.metrics.feature_cols.forEach(c => { initialForm[c] = ""; });
+          setFormData(initialForm);
+          setPrediction(null);
+          setStep(3);
+          log(`Entrenado — accuracy: ${(data.accuracy * 100).toFixed(1)}%`, "ok");
+        } catch (e) { log(e.message, "err"); }
+        finally { setLoading(""); }
+      };
+
+      // ── Paso 3: Predecir ───────────────────────────────────────────────────────
+      const handlePredict = async () => {
+        setLoading("predict");
+        const payload = {};
+        let hasErrors = false;
+
+        metrics.feature_cols.forEach(c => {
+          const v = formData[c];
+          const uniques = featureUniques[c];
+
+          // Validate categorical values
+          if (uniques && v) {  // If value is provided for categorical feature
+            if (!uniques.map(u => u.toLowerCase()).includes(v.toLowerCase())) {
+              log(`Error: "${v}" no es válido para ${c}. Opciones: ${uniques.slice(0, 3).join(", ")}...`, "err");
+              hasErrors = true;
+              return;
+            }
+            // Use exact value from uniques (case-sensitive)
+            const exactValue = uniques.find(u => u.toLowerCase() === v.toLowerCase());
+            payload[c] = exactValue;
+          } else {
+            payload[c] = isNaN(v) || v === "" ? v : Number(v);
+          }
+        });
+
+        if (hasErrors) {
+          setLoading("");
+          return;  // Don't send if validation failed
+        }
+
+        try {
+          const res = await fetch(`${API}/predict-single`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Error prediciendo");
+          setPrediction(data);
+          setStep(4);
+          log(`Predicción: ${data.prediction} (${(data.confidence * 100).toFixed(1)}%)`, "ok");
+        } catch (e) { log(e.message, "err"); }
+        finally { setLoading(""); }
+      };
+
+      const reset = () => {
+        setStep(1); setAnalysis(null); setTargetCol(""); setDropped([]);
+        setMetrics(null); setCsvFile(null); setFormData({}); setPrediction(null); setLogs([]);
+        setSuggestions([]);
+        setFeatureUniques({});
+        setOpenAutocomplete(null);
+      };
+
+      const toggleDrop = (col) => {
+        if (col === targetCol) return;
+        setDropped(d => d.includes(col) ? d.filter(c => c !== col) : [...d, col]);
+      };
+
+      const handleAutoSuggest = () => {
+        const autoDropped = suggestions.map(s => s.column);
+        setDropped(prev => [...new Set([...prev, ...autoDropped])]);
+        log(`${autoDropped.length} columnas marcadas para excluir`, "ok");
+      };
+
+      const colInfo = (col) => analysis?.column_info.find(c => c.name === col);
+
+      const badgeClass = (type) =>
+        type === "numeric" ? "badge-num" :
+          type === "categorical" ? "badge-cat" : "badge-numcat";
+
+      const badgeLabel = (type) =>
+        type === "numeric" ? "num" :
+          type === "categorical" ? "cat" : "num/cat";
+
+      const topClass = prediction
+        ? Object.entries(prediction.probabilities).sort((a, b) => b[1] - a[1])[0]?.[0]
+        : null;
+
+      const featMax = metrics
+        ? Math.max(...Object.values(metrics.feature_importances))
+        : 1;
+
+      const distTotal = metrics
+        ? Object.values(metrics.target_distribution).reduce((a, b) => a + b, 0)
+        : 1;
+
+      const stepLabels = ["Subir CSV", "Configurar", "Métricas", "Predecir"];
+
+      return (
+        <div>
+          <nav>
+            <div className="logo">mini<span>_</span>saas<span>.</span>ia <span style={{ color: 'var(--accent)' }}>v2</span></div>
+            <div className="nav-tag">clasificador genérico</div>
+          </nav>
+
+          <div className="layout">
+            {/* STEPS */}
+            <div className="steps">
+              {stepLabels.map((lbl, i) => (
+                <div key={i} className={`step ${step === i + 1 ? "active" : step > i + 1 ? "done" : ""}`}>
+                  <div className="step-num">{step > i + 1 ? "✓" : String(i + 1).padStart(2, "0")}</div>
+                  <span>{lbl}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* ── STEP 1: UPLOAD ── */}
+            {step === 1 && (
+              <div className="card">
+                <div className="card-title">Paso 1 — Sube tu CSV</div>
+                <div
+                  className={`upload-zone ${dragOver ? "drag" : ""}`}
+                  onClick={() => fileRef.current.click()}
+                  onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
+                >
+                  <div className="upload-icon">📂</div>
+                  <h3>Arrastra tu CSV aquí</h3>
+                  <p>o haz clic para seleccionar · cualquier dataset de clasificación</p>
+                  <input ref={fileRef} type="file" accept=".csv"
+                    onChange={e => handleFile(e.target.files[0])} />
+                </div>
+                {loading === "analyze" && (
+                  <div className="log"><span className="info"><span className="spinner" /> Analizando columnas...</span></div>
+                )}
+                {logs.length > 0 && (
+                  <div className="log">{logs.map((l, i) => <div key={i} className={l.type}>&gt; {l.msg}</div>)}</div>
+                )}
+                <p className="hint" style={{ marginTop: 16 }}>
+                  Funciona con cualquier CSV: Titanic, Iris, Heart Disease, churn, spam, etc.
+                </p>
+              </div>
+            )}
+
+            {/* ── STEP 2: CONFIGURE ── */}
+            {step === 2 && analysis && (
+              <>
+                <div className="card">
+                  <div className="card-title">Paso 2 — Elige el target</div>
+                  <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 16 }}>
+                    Haz clic en la columna que quieres <strong style={{ color: 'var(--text)' }}>predecir</strong>.
+                    Las otras se usarán como features. Clic derecho para ignorar una columna.
+                  </p>
+                  <div className="col-grid">
+                    {analysis.column_info.map(col => {
+                      const isSuggested = suggestions.some(s => s.column === col.name);
+                      return (
+                      <div
+                        key={col.name}
+                        className={`col-card ${targetCol === col.name ? "target" : ""} ${droppedCols.includes(col.name) ? "dropped" : ""} ${isSuggested ? "suggested-drop" : ""}`}
+                        onClick={() => { if (!droppedCols.includes(col.name)) setTargetCol(col.name); }}
+                        onContextMenu={e => { e.preventDefault(); toggleDrop(col.name); }}
+                        title="Clic: seleccionar como target · Clic derecho: ignorar columna"
+                      >
+                        <div className="col-name">{col.name}</div>
+                        <span className={`col-badge ${badgeClass(col.type)}`}>{badgeLabel(col.type)}</span>
+                        {" "}
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
+                          {col.n_unique} únicos
+                        </span>
+                        <div className="col-samples">{col.samples.join(", ")}</div>
+                        {col.missing > 0 && (
+                          <div className="col-missing">⚠ {col.missing} vacíos</div>
+                        )}
+                        {isSuggested && (
+                          <span style={{ fontSize: 9, color: 'var(--warn)', fontFamily: 'var(--mono)' }}>
+                            ⚠ sospechosa
+                          </span>
+                        )}
+                        {targetCol === col.name && (
+                          <div style={{ marginTop: 6 }}>
+                            <span className="tag">★ target</span>
+                          </div>
+                        )}
+                        {droppedCols.includes(col.name) && (
+                          <div style={{ marginTop: 6, fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>ignorada</div>
+                        )}
+                      </div>
+                      );
+                    })}
+                  </div>
+
+                  {suggestions.length > 0 && (
+                    <div className="suggestions-panel">
+                      <div style={{
+                        fontSize: 12,
+                        fontFamily: 'var(--mono)',
+                        fontWeight: 500,
+                        color: 'var(--warn)',
+                        marginBottom: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}>
+                        ⚠ {suggestions.length} columnas potencialmente irrelevantes
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {suggestions.map(sug => (
+                          <div key={sug.column} className="suggestion-item">
+                            <div>
+                              <div style={{marginBottom: 2}}>{sug.column}</div>
+                              <div className="suggestion-reason">{sug.reason}</div>
+                            </div>
+                            <div className="suggestion-confidence">
+                              {(sug.confidence * 100).toFixed(0)}%
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        className="btn btn-ghost"
+                        style={{marginTop: 12, width: '100%'}}
+                        onClick={handleAutoSuggest}
+                      >
+                        🎯 Excluir sugerencias
+                      </button>
+                    </div>
+                  )}
+
+                  {targetCol && (
+                    <div style={{ marginTop: 20, padding: 14, background: 'rgba(79,255,176,.05)', border: '1px solid rgba(79,255,176,.2)', borderRadius: 8 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--accent)' }}>
+                        ★ Target: <strong>{targetCol}</strong>
+                      </span>
+                      {" · "}
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>
+                        Features: {analysis.column_info
+                          .filter(c => c.name !== targetCol && !droppedCols.includes(c.name))
+                          .map(c => c.name).join(", ")}
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 20, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <button className="btn btn-primary" disabled={!targetCol || loading === "train"} onClick={handleTrain}>
+                      {loading === "train"
+                        ? <><span className="spinner" /> Entrenando RandomForest...</>
+                        : `→ Entrenar con "${targetCol || "?"}"`}
+                    </button>
+                    <button className="btn btn-ghost" onClick={reset}>← Cambiar CSV</button>
+                  </div>
+                  {logs.length > 0 && (
+                    <div className="log">{logs.map((l, i) => <div key={i} className={l.type}>&gt; {l.msg}</div>)}</div>
+                  )}
+                </div>
+
+                {/* Preview */}
+                <div className="card">
+                  <div className="card-title">Vista previa — primeras 5 filas</div>
+                  <div className="preview-wrap">
+                    <table>
+                      <thead>
+                        <tr>{Object.keys(analysis.preview[0] || {}).map(k => <th key={k}>{k}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {analysis.preview.map((row, i) => (
+                          <tr key={i}>{Object.values(row).map((v, j) => <td key={j}>{String(v)}</td>)}</tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── STEP 3: METRICS + PREDICT FORM ── */}
+            {(step === 3 || step === 4) && metrics && (
+              <>
+                <div className="card">
+                  <div className="card-title">Métricas del modelo</div>
+                  <div className="metrics-row">
+                    <div className="metric">
+                      <div className="metric-val">{(metrics.accuracy * 100).toFixed(1)}%</div>
+                      <div className="metric-lbl">Accuracy</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-val">{metrics.total_samples}</div>
+                      <div className="metric-lbl">Muestras</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-val">{metrics.classes.length}</div>
+                      <div className="metric-lbl">Clases</div>
+                    </div>
+                    <div className="metric">
+                      <div className="metric-val">{metrics.feature_cols.length}</div>
+                      <div className="metric-lbl">Features</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                    {/* Feature importances */}
+                    <div>
+                      <div style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                        Importancia de features
+                      </div>
+                      {Object.entries(metrics.feature_importances)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 10)
+                        .map(([name, val]) => (
+                          <div className="feat-row" key={name}>
+                            <div className="feat-name" title={name}>{name}</div>
+                            <div className="feat-bg">
+                              <div className="feat-fill" style={{ width: `${(val / featMax) * 100}%` }} />
+                            </div>
+                            <div className="feat-val">{(val * 100).toFixed(1)}%</div>
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Distribución target */}
+                    <div>
+                      <div style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                        Distribución de "{metrics.target_col}"
+                      </div>
+                      {Object.entries(metrics.target_distribution)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 10)
+                        .map(([cls, cnt]) => (
+                          <div className="dist-row" key={cls}>
+                            <div className="dist-label" title={cls}>{cls}</div>
+                            <div className="dist-bg">
+                              <div className="dist-fill" style={{ width: `${(cnt / distTotal) * 100}%` }} />
+                            </div>
+                            <div className="dist-cnt">{cnt}</div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
+                    <button className="btn btn-ghost" onClick={() => { setStep(2); }}>← Cambiar target</button>
+                    <button className="btn btn-danger" onClick={reset}>⟳ Nuevo CSV</button>
+                  </div>
+                </div>
+
+                {/* PREDICT FORM */}
+                <div className="card">
+                  <div className="card-title">Predecir — ingresa los valores</div>
+                  <div className="predict-grid">
+                    {metrics.feature_cols.map(col => {
+                      const info = colInfo(col);
+                      const uniques = featureUniques[col];
+                      const isNumeric = info?.type === "numeric";
+
+                      // For categorical: use uniques, not samples
+                      const options = !isNumeric && uniques ? uniques : info?.samples || [];
+
+                      return (
+                        <div className="field" key={col}>
+                          <label>
+                            {col}
+                            {info && <span style={{ marginLeft: 6 }} className={`col-badge ${badgeClass(info.type)}`}>{badgeLabel(info.type)}</span>}
+                          </label>
+
+                          {/* CASE 1: Categorical with ≤4 values → Simple dropdown */}
+                          {info?.type === "categorical" && uniques && uniques.length <= 4 ? (
+                            <select
+                              value={formData[col] || ""}
+                              onChange={e => setFormData(f => ({ ...f, [col]: e.target.value }))}
+                            >
+                              <option value="">— elige —</option>
+                              {uniques.filter(s => s !== "missing").map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          )
+                          /* CASE 2: Categorical with >4 values → Autocomplete input */
+                          : info?.type === "categorical" && uniques && uniques.length > 4 ? (
+                            <div className="autocomplete-wrapper">
+                              <input
+                                type="text"
+                                placeholder={`Buscar en ${uniques.filter(u => u !== "missing").length} opciones...`}
+                                value={formData[col] || ""}
+                                onChange={e => {
+                                  setFormData(f => ({ ...f, [col]: e.target.value }));
+                                  setOpenAutocomplete(e.target.value ? col : null);  // Open if typing
+                                }}
+                                onFocus={() => formData[col] && setOpenAutocomplete(col)}
+                                onBlur={() => setTimeout(() => setOpenAutocomplete(null), 200)}  // Close after select
+                                onKeyDown={e => {
+                                  // Prevent invalid entries - only allow values from uniques
+                                  if (e.key === "Enter") {
+                                    const val = formData[col];
+                                    if (val && !uniques.map(u => u.toLowerCase()).includes(val.toLowerCase())) {
+                                      setFormData(f => ({ ...f, [col]: "" }));
+                                      log(`"${val}" no es un valor válido para ${col}`, "err");
+                                    }
+                                    setOpenAutocomplete(null);  // Close on Enter
+                                  }
+                                }}
+                              />
+                              {/* Show matching options while typing */}
+                              {openAutocomplete === col && formData[col] && (
+                                <div className="autocomplete-options">
+                                  {uniques
+                                    .filter(u => u !== "missing" && u.toLowerCase().includes((formData[col] || "").toLowerCase()))
+                                    .slice(0, 8)  // Show max 8 options
+                                    .map(u => (
+                                      <div
+                                        key={u}
+                                        className={`autocomplete-option ${formData[col]?.toLowerCase() === u.toLowerCase() ? "selected" : ""}`}
+                                        onClick={() => {
+                                          setFormData(f => ({ ...f, [col]: u }));  // Use exact value from uniques
+                                          setOpenAutocomplete(null);  // Close after select
+                                        }}
+                                      >
+                                        {u}
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                          /* CASE 3: Numeric or fallback → Number input */
+                          : (
+                            <input
+                              type={info?.type === "numeric" ? "number" : "text"}
+                              placeholder={info?.samples?.[0] || "valor"}
+                              value={formData[col] || ""}
+                              onChange={e => setFormData(f => ({ ...f, [col]: e.target.value }))}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ marginTop: 20 }}>
+                    <button className="btn btn-primary" disabled={loading === "predict"} onClick={handlePredict}>
+                      {loading === "predict"
+                        ? <><span className="spinner" /> Prediciendo...</>
+                        : `→ Predecir "${metrics.target_col}"`}
+                    </button>
+                  </div>
+
+                  {logs.length > 0 && (
+                    <div className="log">{logs.map((l, i) => <div key={i} className={l.type}>&gt; {l.msg}</div>)}</div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── STEP 4: RESULT ── */}
+            {step === 4 && prediction && (
+              <div className="card">
+                <div className="card-title">Resultado</div>
+                <div className="result-box" style={{
+                  background: 'rgba(79,255,176,0.05)',
+                  borderColor: 'rgba(79,255,176,0.25)',
+                }}>
+                  <div style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.1em' }}>
+                    {metrics.target_col}
+                  </div>
+                  <div className="result-lbl" style={{ color: 'var(--accent)' }}>{prediction.prediction}</div>
+                  <div className="result-conf">Confianza: {(prediction.confidence * 100).toFixed(1)}%</div>
+
+                  <div className="prob-list">
+                    {Object.entries(prediction.probabilities)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([cls, p]) => (
+                        <div className="prob-row" key={cls}>
+                          <div className="prob-cls" title={cls}>{cls}</div>
+                          <div className="prob-bg">
+                            <div className={`prob-fill ${cls === topClass ? "top" : "rest"}`} style={{ width: `${p * 100}%` }} />
+                          </div>
+                          <div className="prob-pct">{(p * 100).toFixed(1)}%</div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <button className="btn btn-ghost" onClick={() => setStep(3)}>← Predecir otro</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+
+</html>
