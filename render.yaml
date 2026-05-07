@@ -1,0 +1,26 @@
+services:
+  # ── Backend API ────────────────────────────────────────────────────────────
+  - type: web
+    name: augury-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    disk:
+      name: model-storage
+      mountPath: /app/models
+      sizeGB: 1
+
+  # ── Frontend estático ──────────────────────────────────────────────────────
+  - type: web
+    name: augury-frontend
+    runtime: static
+    rootDir: frontend
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

@@ -1,0 +1,110 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyc
+*.pyo
+*.pyd
+.Python
+MANIFEST
+
+# ── Entornos virtuales ────────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# ── Variables de entorno (secretos) ──────────────────────────────────────────
+backend/.env
+.env.local
+.env.*.local
+
+# ── Bases de datos locales ────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Modelos ML entrenados (se regeneran, no van a git) ───────────────────────
+*.joblib
+*.pkl
+*.h5
+tmp_models/
+models/
+backend/tmp_models/
+backend/models/
+
+# ── Archivos temporales del worker Celery ────────────────────────────────────
+temp/
+backend/temp/
+**/temp/*.csv
+
+# ── Empaquetado Python ────────────────────────────────────────────────────────
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ── Tests y cobertura ─────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+nosetests.xml
+pytest.xml
+
+# ── Type checkers ─────────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+# ── IDEs y editores ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ── Sistema operativo ─────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Herramientas de desarrollo locales ───────────────────────────────────────
+.claude/
+.sixth/
+
+# ── Node / frontend build (por si se añade en el futuro) ─────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next/
+dist/
+.nuxt/
+.cache/
+package-lock.json
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/

@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: minisaas
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_data:/app/models
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/minisaas
+      - REDIS_URL=redis://redis:6379/0
+      - MODEL_DIR=/app/models
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - SECRET_KEY=dev-secret-change-in-production
+      - PYTHONUNBUFFERED=1
+      - LOG_FORMAT=text
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: celery -A celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - model_data:/app/models
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/minisaas
+      - REDIS_URL=redis://redis:6379/0
+      - MODEL_DIR=/app/models
+      - SECRET_KEY=dev-secret-change-in-production
+      - PYTHONUNBUFFERED=1
+      - LOG_FORMAT=json
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:
+  model_data:

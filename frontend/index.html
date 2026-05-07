@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Augury</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #090c10;
+      --surface:  #111620;
+      --surface2: #181f2e;
+      --surface3: #1e2739;
+      --border:   #222d3f;
+      --border2:  #2a3852;
+      --accent:   #4fffb0;
+      --accent2:  #3b82f6;
+      --warn:     #f59e0b;
+      --danger:   #ff4f6b;
+      --text:     #e8edf5;
+      --muted:    #5a6a82;
+      --muted2:   #8898aa;
+      --mono:     'DM Mono', monospace;
+      --sans:     'Sora', sans-serif;
+      --radius:   12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(79,255,176,.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,255,176,.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    #root { position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      max-width: 1040px; margin: 0 auto;
+    }
+    .logo { font-family: var(--mono); font-size: 14px; color: var(--text); letter-spacing: .04em; }
+    .logo em { color: var(--accent); font-style: normal; font-weight: 500; }
+    .nav-user { display: flex; align-items: center; gap: 14px; }
+    .nav-email { font-family: var(--mono); font-size: 11px; color: var(--muted2); }
+
+    /* ── LAYOUT ── */
+    .layout { max-width: 1040px; margin: 0 auto; padding: 32px 32px 80px; }
+
+    /* ── STEP BAR ── */
+    .stepbar { display: flex; gap: 0; margin-bottom: 36px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    .stepbar-item {
+      flex: 1; display: flex; align-items: center; gap: 10px;
+      padding: 14px 18px; background: var(--surface); font-size: 12px;
+      color: var(--muted); font-family: var(--mono);
+      border-right: 1px solid var(--border); transition: all .2s;
+    }
+    .stepbar-item:last-child { border-right: none; }
+    .stepbar-item.active { background: rgba(79,255,176,.04); color: var(--accent); }
+    .stepbar-item.done   { background: var(--surface2); color: var(--muted2); }
+    .stepbar-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; background: var(--border); flex-shrink: 0; transition: all .2s;
+    }
+    .stepbar-item.active .stepbar-num { background: var(--accent); color: #000; }
+    .stepbar-item.done   .stepbar-num { background: var(--accent2); color: #fff; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
+    }
+    .card-title {
+      font-family: var(--mono); font-size: 10px; color: var(--accent);
+      letter-spacing: .14em; text-transform: uppercase;
+      margin-bottom: 22px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before {
+      content: ''; display: block; width: 3px; height: 13px;
+      background: var(--accent); border-radius: 2px;
+    }
+
+    /* ── UPLOAD ── */
+    .upload-zone {
+      border: 1px dashed var(--border2); border-radius: var(--radius);
+      padding: 56px 24px; text-align: center; cursor: pointer; transition: all .2s;
+      position: relative; overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.drag {
+      border-color: var(--accent); background: rgba(79,255,176,.03);
+    }
+    .upload-icon { font-size: 32px; opacity: .6; margin-bottom: 12px; }
+    .upload-zone h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .upload-zone p  { color: var(--muted2); font-size: 12px; line-height: 1.6; }
+    .upload-formats { display: flex; gap: 6px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+    .fmt-badge {
+      font-family: var(--mono); font-size: 10px; padding: 3px 10px;
+      border-radius: 20px; border: 1px solid var(--border2); color: var(--muted2);
+    }
+    input[type=file] { display: none; }
+
+    /* ── NOTICES ── */
+    .notice {
+      padding: 12px 16px; border-radius: 8px; font-family: var(--mono);
+      font-size: 11px; display: flex; align-items: flex-start; gap: 8px;
+      margin-bottom: 12px; line-height: 1.6;
+    }
+    .notice-info { background: rgba(59,130,246,.07); border: 1px solid rgba(59,130,246,.2); color: #93c5fd; }
+    .notice-warn { background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2); color: var(--warn); }
+    .notice-ok   { background: rgba(79,255,176,.05); border: 1px solid rgba(79,255,176,.18); color: var(--accent); }
+
+    /* ── COLUMN GRID ── */
+    .col-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    .col-card {
+      padding: 14px; border: 1px solid var(--border); border-radius: 10px;
+      cursor: pointer; transition: all .15s; background: var(--surface2);
+      user-select: none;
+    }
+    .col-card:hover        { border-color: var(--accent2); background: rgba(59,130,246,.04); }
+    .col-card.target       { border-color: var(--accent); background: rgba(79,255,176,.05); }
+    .col-card.dropped      { opacity: .35; border-style: dashed; }
+    .col-card.suggested    { border-color: rgba(245,158,11,.5); }
+    .col-name { font-family: var(--mono); font-size: 12px; font-weight: 500; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .col-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .col-badge { display: inline-block; font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 20px; }
+    .badge-num    { background: rgba(59,130,246,.12); color: #93c5fd; }
+    .badge-cat    { background: rgba(251,146,60,.12); color: #fdba74; }
+    .badge-numcat { background: rgba(167,139,250,.12); color: #c4b5fd; }
+    .col-samples  { font-size: 10px; color: var(--muted); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .col-missing  { font-size: 10px; color: var(--warn); font-family: var(--mono); margin-top: 3px; }
+
+    /* ── SUGGESTIONS PANEL ── */
+    .suggest-panel { background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.2); border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .suggest-header { font-family: var(--mono); font-size: 11px; color: var(--warn); font-weight: 500; margin-bottom: 10px; }
+    .suggest-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 11px; font-family: var(--mono); border-bottom: 1px solid rgba(245,158,11,.08); }
+    .suggest-row:last-of-type { border-bottom: none; }
+
+    /* ── AUTOCOMPLETE ── */
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-options { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface3); border: 1px solid var(--border2); border-top: none; border-radius: 0 0 8px 8px; max-height: 160px; overflow-y: auto; z-index: 20; }
+    .autocomplete-option { padding: 9px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 12px; transition: background .12s; }
+    .autocomplete-option:hover { background: rgba(79,255,176,.08); }
+    .autocomplete-option.selected { background: var(--accent); color: #000; font-weight: 500; }
+
+    /* ── ALGO SELECTOR ── */
+    .algo-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .algo-btn {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted2);
+      font-family: var(--mono); font-size: 11px; cursor: pointer; transition: all .15s;
+    }
+    .algo-btn:hover  { border-color: var(--accent2); color: var(--text); }
+    .algo-btn.active { border-color: var(--accent2); background: rgba(59,130,246,.1); color: var(--accent2); }
+
+    /* ── TARGET BANNER ── */
+    .target-banner {
+      margin-top: 18px; padding: 14px 18px;
+      background: rgba(79,255,176,.04); border: 1px solid rgba(79,255,176,.15);
+      border-radius: 10px; font-family: var(--mono); font-size: 12px;
+      display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+    }
+
+    /* ── TRAINING PROGRESS ── */
+    .train-progress {
+      padding: 24px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      margin-top: 16px;
+    }
+    .train-stages { display: flex; justify-content: space-between; margin-bottom: 20px; position: relative; }
+    .train-stages::before {
+      content: ''; position: absolute; top: 11px; left: 12%; right: 12%;
+      height: 1px; background: var(--border); z-index: 0;
+    }
+    .train-stage { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; z-index: 1; }
+    .train-stage-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--surface); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; transition: all .4s;
+    }
+    .train-stage.active .train-stage-dot {
+      border-color: var(--accent); background: rgba(79,255,176,.1);
+      animation: stagePulse 1.6s ease-in-out infinite;
+    }
+    .train-stage.done .train-stage-dot { border-color: var(--accent); background: var(--accent); color: #000; }
+    .train-stage-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; transition: color .3s; }
+    .train-stage.active .train-stage-lbl { color: var(--accent); }
+    .train-stage.done   .train-stage-lbl { color: var(--muted2); }
+
+    .train-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+    .train-bar-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      transition: width .9s cubic-bezier(.16,1,.3,1);
+      position: relative; overflow: hidden;
+    }
+    .train-bar-fill.indeterminate::after {
+      content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+      animation: trainShimmer 1.4s infinite;
+    }
+    .train-status-row { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11px; color: var(--muted2); }
+    .train-timer { color: var(--muted); }
+
+    @keyframes stagePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(79,255,176,.3); }
+      50%       { box-shadow: 0 0 0 6px rgba(79,255,176,.05); }
+    }
+    @keyframes trainShimmer { 100% { left: 160%; } }
+
+    /* ── PREVIEW TABLE ── */
+    .preview-wrap { overflow-x: auto; margin-top: 16px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+    th { background: var(--surface2); padding: 9px 14px; text-align: left; color: var(--muted2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 8px 14px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── METRICS ── */
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .metric {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 14px; text-align: center;
+    }
+    .metric-val { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+    .metric-lbl { font-size: 10px; color: var(--muted2); text-transform: uppercase; font-family: var(--mono); letter-spacing: .07em; }
+    .cv-row { font-family: var(--mono); font-size: 11px; color: var(--muted2); margin-bottom: 22px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); }
+    .cv-row span { color: var(--text); }
+
+    /* ── FEAT / DIST BARS ── */
+    .feat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .feat-name { font-family: var(--mono); font-size: 11px; color: var(--muted2); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feat-bg { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .feat-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 2px; transition: width .8s cubic-bezier(.16,1,.3,1); }
+    .feat-val  { font-family: var(--mono); font-size: 11px; color: var(--muted2); width: 38px; text-align: right; }
+    .dist-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .dist-label { font-family: var(--mono); font-size: 11px; color: var(--muted2); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dist-bg   { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .dist-fill { height: 100%; background: var(--accent2); border-radius: 2px; }
+    .dist-cnt  { font-family: var(--mono); font-size: 11px; color: var(--muted2); width: 38px; text-align: right; }
+
+    /* ── PREDICT FORM ── */
+    .predict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field label { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted2); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 13px; color: var(--text);
+      font-family: var(--mono); font-size: 12px; outline: none; transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent2); }
+    .field select option { background: var(--surface); }
+
+    /* ── PREDICTION OVERLAY ── */
+    .result-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(9,12,16,.88);
+      backdrop-filter: blur(12px) saturate(1.4);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      animation: overlayIn .25s ease;
+    }
+    @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .result-modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 24px;
+      padding: 52px 44px 40px;
+      text-align: center;
+      max-width: 540px; width: 100%;
+      position: relative;
+      animation: resultPop .4s cubic-bezier(.16,1,.3,1);
+      overflow: hidden;
+    }
+    @keyframes resultPop {
+      from { opacity: 0; transform: scale(.88) translateY(20px); }
+      to   { opacity: 1; transform: scale(1)   translateY(0); }
+    }
+
+    .result-modal::before {
+      content: '';
+      position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+      width: 320px; height: 200px; border-radius: 50%;
+      pointer-events: none; z-index: 0;
+      filter: blur(60px); opacity: .35;
+    }
+    .result-modal.reg::before  { background: var(--accent2); }
+    .result-modal.cls::before  { background: var(--accent); }
+
+    .result-modal > * { position: relative; z-index: 1; }
+
+    .result-chip {
+      display: inline-block;
+      font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 24px;
+      border: 1px solid;
+    }
+    .result-chip.reg { background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.3); color: var(--accent2); }
+    .result-chip.cls { background: rgba(79,255,176,.08); border-color: rgba(79,255,176,.25); color: var(--accent); }
+
+    .result-target-label {
+      font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 14px;
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+
+    .result-big-value {
+      font-family: var(--mono); font-weight: 600; line-height: 1;
+      margin-bottom: 12px; letter-spacing: -.02em;
+      font-size: clamp(42px, 8vw, 72px);
+    }
+    .result-big-value.reg { color: var(--accent2); text-shadow: 0 0 40px rgba(59,130,246,.4); }
+    .result-big-value.cls { color: var(--accent);  text-shadow: 0 0 40px rgba(79,255,176,.35); }
+
+    .result-confidence {
+      font-family: var(--mono); font-size: 13px; color: var(--muted2); margin-bottom: 32px;
+    }
+    .result-confidence strong { color: var(--text); }
+
+    .result-algo-note {
+      font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 6px; margin-bottom: 32px;
+    }
+
+    .prob-list { display: flex; flex-direction: column; gap: 10px; text-align: left; max-width: 400px; margin: 0 auto 32px; }
+    .prob-row  { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 12px; }
+    .prob-cls  { width: 140px; color: var(--muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prob-bg   { flex: 1; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
+    .prob-fill { height: 100%; border-radius: 3px; transition: width .7s cubic-bezier(.16,1,.3,1); }
+    .prob-fill.top  { background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+    .prob-fill.rest { background: var(--border2); }
+    .prob-pct  { width: 44px; text-align: right; color: var(--muted2); }
+
+    .result-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    .result-divider { height: 1px; background: var(--border); margin: 0 0 28px; }
+
+    /* ── BATCH ── */
+    .batch-zone {
+      border: 1px dashed var(--border); border-radius: 10px;
+      padding: 18px; text-align: center; cursor: pointer; transition: border-color .2s; margin-top: 8px;
+    }
+    .batch-zone:hover    { border-color: var(--accent2); }
+    .batch-zone.has-file { border-color: var(--accent2); background: rgba(59,130,246,.04); }
+
+    /* ── STATS TABLE ── */
+    .stats-kv { display: flex; flex-direction: column; gap: 9px; }
+    .stats-kv-row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .stats-kv-row:last-child { border-bottom: none; }
+    .stats-key { color: var(--muted2); }
+    .stats-val { color: var(--text); font-weight: 500; }
+
+    /* ── BTNS ── */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-family: var(--mono); font-size: 12px; cursor: pointer; border: none; transition: all .15s; font-weight: 500; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #6bffc0; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(79,255,176,.2); }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-ghost  { background: transparent; color: var(--muted2); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent2); color: var(--text); }
+    .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(255,79,107,.3); }
+    .btn-danger:hover { background: rgba(255,79,107,.07); }
+    .btn-blue { background: var(--accent2); color: #fff; }
+    .btn-blue:hover { background: #5b96f9; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(59,130,246,.2); }
+    .btn-blue:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* ── MISC ── */
+    .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(79,255,176,.25); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tag { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 3px 9px; border-radius: 20px; background: rgba(79,255,176,.08); color: var(--accent); border: 1px solid rgba(79,255,176,.18); }
+    .tag-blue { background: rgba(59,130,246,.1); color: var(--accent2); border-color: rgba(59,130,246,.22); }
+    .sep { height: 1px; background: var(--border); margin: 24px 0; }
+    .hint { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 10px; line-height: 1.6; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── AUTH ── */
+    .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 44px; width: 100%; max-width: 400px; }
+    .auth-error { background: rgba(255,79,107,.08); border: 1px solid rgba(255,79,107,.25); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--danger); margin-top: 12px; font-family: var(--mono); }
+    .link-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-family: var(--mono); font-size: 12px; padding: 0; text-decoration: underline; }
+    .link-btn:hover { opacity: .75; }
+
+    /* ── LOG ── */
+    .log { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-family: var(--mono); font-size: 11px; color: var(--muted2); margin-top: 14px; max-height: 90px; overflow-y: auto; line-height: 1.9; }
+    .log .ok   { color: var(--accent); }
+    .log .err  { color: var(--danger); }
+    .log .info { color: var(--accent2); }
+
+    @media (max-width: 640px) {
+      .predict-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: 1fr 1fr; }
+      .stepbar-item span { display: none; }
+      nav { padding: 16px 20px; }
+      .layout { padding: 20px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const ALL_ALGORITHMS = [
+      { id: "random_forest",               label: "Random Forest",      task: "classification" },
+      { id: "gradient_boosting",           label: "Gradient Boosting",  task: "classification" },
+      { id: "logistic_regression",         label: "Reg. Logística",     task: "classification" },
+      { id: "random_forest_regressor",     label: "Random Forest",      task: "regression" },
+      { id: "gradient_boosting_regressor", label: "Gradient Boosting",  task: "regression" },
+      { id: "ridge_regression",            label: "Ridge Regression",   task: "regression" },
+    ];
+
+    const API = window.__API_URL__ ||
+      (location.protocol === "https:"
+        ? "https://augury-api.onrender.com"
+        : "http://localhost:8000");
+
+    // ── Auth ───────────────────────────────────────────────────────────────────
+    function AuthScreen({ onSuccess }) {
+      const [mode, setMode]         = useState("login");
+      const [email, setEmail]       = useState("");
+      const [password, setPassword] = useState("");
+      const [loading, setLoading]   = useState(false);
+      const [error, setError]       = useState("");
+
+      const submit = async (e) => {
+        e.preventDefault();
+        setLoading(true); setError("");
+        try {
+          if (mode === "register") {
+            const r = await fetch(`${API}/auth/register`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ email, password }) });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.detail || "Error al registrarse");
+          }
+          const r = await fetch(`${API}/auth/login`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ email, password }) });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.detail || "Credenciales inválidas");
+          onSuccess(d.access_token, email);
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+      };
+
+      return (
+        <div className="auth-wrap">
+          <div className="auth-card">
+            <div style={{ fontFamily:'var(--mono)', fontSize:15, color:'var(--text)', marginBottom:28 }}>
+              aug<em style={{color:'var(--accent)',fontStyle:'normal'}}>ury</em>
+            </div>
+            <h2 style={{ marginBottom:6, fontSize:20, fontWeight:700 }}>{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h2>
+            <p style={{ color:'var(--muted2)', fontSize:12, marginBottom:28 }}>
+              {mode === "login" ? "Bienvenido de vuelta." : "Empieza en menos de un minuto."}
+            </p>
+            <form onSubmit={submit}>
+              <div className="field" style={{marginBottom:12}}>
+                <label>Email</label>
+                <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com" required autoFocus />
+              </div>
+              <div className="field" style={{marginBottom:4}}>
+                <label>Contraseña</label>
+                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="mínimo 8 caracteres" required />
+              </div>
+              {error && <div className="auth-error">{error}</div>}
+              <button type="submit" className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:20}} disabled={loading}>
+                {loading ? <><span className="spinner"/> {mode==="login"?"Entrando...":"Registrando..."}</> : mode==="login"?"→ Entrar":"→ Crear cuenta"}
+              </button>
+            </form>
+            <div style={{marginTop:20, textAlign:'center', fontSize:12, color:'var(--muted2)'}}>
+              {mode==="login"
+                ? <>¿Sin cuenta?{" "}<button className="link-btn" onClick={()=>{setMode("register");setError("");}}>Regístrate</button></>
+                : <>¿Ya tienes cuenta?{" "}<button className="link-btn" onClick={()=>{setMode("login");setError("");}}>Entra aquí</button></>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── App root ───────────────────────────────────────────────────────────────
+    function App() {
+      const [token,     setToken]     = useState(() => localStorage.getItem("token"));
+      const [userEmail, setUserEmail] = useState(() => localStorage.getItem("userEmail") || "");
+
+      const handleAuthSuccess = (tok, email) => {
+        localStorage.setItem("token", tok);
+        localStorage.setItem("userEmail", email);
+        setToken(tok); setUserEmail(email);
+      };
+      const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userEmail");
+        setToken(null); setUserEmail("");
+      };
+      const authFetch = (url, opts = {}) => {
+        const { headers = {}, ...rest } = opts;
+        return fetch(url, { ...rest, headers: { Authorization:`Bearer ${token}`, ...headers } })
+          .then(res => { if (res.status === 401) handleLogout(); return res; });
+      };
+
+      if (!token) return <AuthScreen onSuccess={handleAuthSuccess} />;
+      return <MainApp authFetch={authFetch} userEmail={userEmail} onLogout={handleLogout} />;
+    }
+
+    // ── Main app ───────────────────────────────────────────────────────────────
+    function MainApp({ authFetch, userEmail, onLogout }) {
+      const [step,          setStep]         = useState(1);
+      const [analysis,      setAnalysis]     = useState(null);
+      const [targetCol,     setTargetCol]    = useState("");
+      const [droppedCols,   setDropped]      = useState([]);
+      const [metrics,       setMetrics]      = useState(null);
+      const [loading,       setLoading]      = useState("");
+      const [logs,          setLogs]         = useState([]);
+      const [dragOver,      setDragOver]     = useState(false);
+      const [csvFile,       setCsvFile]      = useState(null);
+      const [formData,      setFormData]     = useState({});
+      const [prediction,    setPrediction]   = useState(null);
+      const [suggestions,   setSuggestions]  = useState([]);
+      const [featureUniques,setFeatureUniques] = useState({});
+      const [openAuto,      setOpenAuto]     = useState(null);
+      const [algorithm,     setAlgorithm]    = useState("random_forest");
+      const [detectedTask,  setDetectedTask] = useState(null);
+      const [batchFile,     setBatchFile]    = useState(null);
+      const [batchLoading,  setBatchLoading] = useState(false);
+      const [normReport,    setNormReport]   = useState(null);
+      const [trainProgress, setTrainProgress]= useState(0);
+      const [trainPhase,    setTrainPhase]   = useState("");
+      const [trainElapsed,  setTrainElapsed] = useState(0);
+      const trainStartRef = useRef(null);
+      const timerRef      = useRef(null);
+      const batchRef = useRef();
+      const fileRef  = useRef();
+
+      const log = (msg, type = "info") => setLogs(l => [...l.slice(-12), { msg, type }]);
+
+      // Auto-detect task type from target column
+      useEffect(() => {
+        if (!targetCol || !analysis) return;
+        const info = analysis.column_info.find(c => c.name === targetCol);
+        const isReg = info?.type === "numeric" && info?.n_unique > 20;
+        setDetectedTask(isReg ? "regression" : "classification");
+        setAlgorithm(isReg ? "random_forest_regressor" : "random_forest");
+      }, [targetCol]);
+
+      // Timer for training elapsed
+      const startTimer = () => {
+        trainStartRef.current = Date.now();
+        timerRef.current = setInterval(() => {
+          setTrainElapsed(Math.round((Date.now() - trainStartRef.current) / 1000));
+        }, 1000);
+      };
+      const stopTimer = () => {
+        clearInterval(timerRef.current);
+      };
+
+      // ── Step 1: analyze file ─────────────────────────────────────────────────
+      const handleFile = async (file) => {
+        if (!file) return;
+        setCsvFile(file); setLoading("analyze");
+        log(`Analizando ${file.name}…`);
+        const form = new FormData();
+        form.append("file", file);
+        try {
+          const res  = await authFetch(`${API}/analyze`, { method:"POST", body:form });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Error al analizar");
+          setAnalysis(data); setNormReport(data.normalization);
+          setTargetCol(""); setDropped([]); setSuggestions([]);
+          log(`Listo — ${data.rows.toLocaleString("es")} filas · ${data.columns} columnas`, "ok");
+
+          if (data.normalization?.warnings?.length) {
+            data.normalization.warnings.forEach(w => log(w, "info"));
+          }
+
+          const sfForm = new FormData();
+          sfForm.append("file", file);
+          authFetch(`${API}/suggest-drops`, { method:"POST", body:sfForm })
+            .then(r => r.json())
+            .then(d => {
+              setSuggestions(d.suggestions || []);
+              if (d.suggestions?.length) log(`${d.suggestions.length} columnas sospechosas detectadas`, "info");
+            })
+            .catch(() => {});
+
+          setStep(2);
+        } catch(e) { log(e.message, "err"); }
+        finally { setLoading(""); }
+      };
+
+      // ── Step 2: train ────────────────────────────────────────────────────────
+      const handleTrain = async () => {
+        if (!targetCol) return;
+        setLoading("train");
+        setTrainProgress(3);
+        setTrainPhase("En cola…");
+        log(`Enviando tarea · target: "${targetCol}"…`);
+        const form = new FormData();
+        form.append("file", csvFile);
+        form.append("target_col", targetCol);
+        form.append("drop_cols", droppedCols.join(","));
+        form.append("algorithm", algorithm);
+        try {
+          const res  = await authFetch(`${API}/train`, { method:"POST", body:form });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Error al enviar");
+          log("Tarea encolada — worker procesando…", "ok");
+          startTimer();
+          await pollJobStatus(data.job_id);
+        } catch(e) { log(e.message, "err"); setLoading(""); stopTimer(); setTrainProgress(0); }
+      };
+
+      const pollJobStatus = async (jobId) => {
+        for (let i = 0; i < 180; i++) {
+          await new Promise(r => setTimeout(r, 2000));
+          try {
+            const res  = await authFetch(`${API}/train/status/${jobId}`);
+            const data = await res.json();
+
+            if (data.status === "started") {
+              const detail = data.detail || "";
+              if (detail.includes("Cargando")) { setTrainProgress(28); setTrainPhase("Cargando y preprocesando…"); }
+              else if (detail.includes("Entrenando")) { setTrainProgress(65); setTrainPhase("Entrenando modelo…"); }
+              else { setTrainProgress(p => Math.min(p + 3, 85)); }
+            } else if (data.status === "pending") {
+              setTrainProgress(p => Math.min(p + 2, 18));
+              setTrainPhase("En cola…");
+            }
+
+            if (data.status === "done") {
+              stopTimer();
+              setTrainProgress(100); setTrainPhase("Completado");
+              setMetrics(data.metrics);
+              setFeatureUniques(data.feature_uniques || {});
+              const init = {};
+              data.metrics.feature_cols.forEach(c => { init[c] = ""; });
+              setFormData(init);
+              setPrediction(null);
+              setStep(3);
+              const isReg = data.metrics?.task_type === "regression";
+              const score = isReg
+                ? `R²: ${data.metrics.r2?.toFixed(3)} · RMSE: ${Math.round(data.metrics.rmse).toLocaleString("es")}`
+                : `accuracy: ${(data.accuracy * 100).toFixed(1)}%`;
+              if (data.metrics?.algorithm_note) log(`⚡ ${data.metrics.algorithm_note}`, "info");
+              log(`Modelo listo — ${score}`, "ok");
+              setLoading("");
+              return;
+            }
+            if (data.status === "failed") throw new Error(data.error || "El entrenamiento falló");
+            if (i % 5 === 0 && i > 0) log(`Entrenando… (${(i+1)*2}s)`, "info");
+          } catch(e) {
+            if (e.message.includes("falló") || e.message.includes("Error")) {
+              log(e.message, "err"); stopTimer(); setLoading(""); setTrainProgress(0); return;
+            }
+          }
+        }
+        log("Timeout: el entrenamiento tardó demasiado", "err");
+        stopTimer(); setLoading(""); setTrainProgress(0);
+      };
+
+      // ── Step 3: predict single ───────────────────────────────────────────────
+      const handlePredict = async () => {
+        setLoading("predict");
+        const payload = {};
+        let hasError = false;
+        metrics.feature_cols.forEach(c => {
+          const v       = formData[c];
+          const uniques = featureUniques[c];
+          if (uniques && v) {
+            const exact = uniques.find(u => u.toLowerCase() === v.toLowerCase());
+            if (!exact) { log(`"${v}" no es válido para ${c}`, "err"); hasError = true; return; }
+            payload[c] = exact;
+          } else {
+            payload[c] = isNaN(v) || v === "" ? v : Number(v);
+          }
+        });
+        if (hasError) { setLoading(""); return; }
+        try {
+          const res  = await authFetch(`${API}/predict-single`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Error prediciendo");
+          setPrediction(data);
+          setStep(4);
+          const msg = data.confidence != null
+            ? `Predicción: ${data.prediction} (${(data.confidence*100).toFixed(1)}%)`
+            : `Predicción: ${typeof data.prediction==="number" ? data.prediction.toLocaleString("es",{maximumFractionDigits:2}) : data.prediction}`;
+          log(msg, "ok");
+        } catch(e) { log(e.message, "err"); }
+        finally { setLoading(""); }
+      };
+
+      const handleBatchPredict = async () => {
+        if (!batchFile) return;
+        setBatchLoading(true);
+        log(`Predicción batch: ${batchFile.name}…`);
+        const form = new FormData();
+        form.append("file", batchFile);
+        try {
+          const res = await authFetch(`${API}/predict-csv`, { method:"POST", body:form });
+          if (!res.ok) { const err = await res.json(); throw new Error(err.detail||"Error batch"); }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href=url; a.download="predictions.csv"; a.click();
+          URL.revokeObjectURL(url);
+          log(`Predicciones descargadas — ${batchFile.name}`, "ok");
+        } catch(e) { log(e.message,"err"); }
+        finally { setBatchLoading(false); }
+      };
+
+      const reset = () => {
+        setStep(1); setAnalysis(null); setTargetCol(""); setDropped([]);
+        setMetrics(null); setCsvFile(null); setFormData({}); setPrediction(null);
+        setLogs([]); setSuggestions([]); setFeatureUniques({});
+        setOpenAuto(null); setBatchFile(null); setNormReport(null);
+        setTrainProgress(0); setTrainPhase(""); setTrainElapsed(0);
+        setDetectedTask(null);
+      };
+
+      const toggleDrop = (col) => {
+        if (col === targetCol) return;
+        setDropped(d => d.includes(col) ? d.filter(c=>c!==col) : [...d, col]);
+      };
+
+      // ── Computed helpers ─────────────────────────────────────────────────────
+      const colInfo  = col => analysis?.column_info.find(c => c.name === col);
+      const badgeCls = t  => t==="numeric"?"badge-num":t==="categorical"?"badge-cat":"badge-numcat";
+      const badgeLbl = t  => t==="numeric"?"num":t==="categorical"?"cat":"num/cat";
+
+      const topClass = prediction?.probabilities
+        ? Object.entries(prediction.probabilities).sort((a,b)=>b[1]-a[1])[0]?.[0]
+        : null;
+
+      const featMax  = metrics ? Math.max(...Object.values(metrics.feature_importances)) : 1;
+      const distTotal= metrics?.target_distribution
+        ? Object.values(metrics.target_distribution).reduce((a,b)=>a+b,0)
+        : 1;
+
+      const isRegression = metrics?.task_type === "regression";
+
+      const filteredAlgos = ALL_ALGORITHMS.filter(a => !detectedTask || a.task === detectedTask);
+
+      // ── Training stages ──────────────────────────────────────────────────────
+      const STAGES = [
+        { id:"queue",   label:"Cola" },
+        { id:"load",    label:"Datos" },
+        { id:"train",   label:"Modelo" },
+        { id:"done",    label:"Listo" },
+      ];
+      const stageIdx =
+        trainProgress >= 100 ? 3 :
+        trainProgress >= 55  ? 2 :
+        trainProgress >= 20  ? 1 : 0;
+
+      // ── Render ───────────────────────────────────────────────────────────────
+      const stepLabels = ["Subir dataset","Configurar","Resultados","Predicción"];
+
+      return (
+        <div>
+          {/* NAV */}
+          <nav>
+            <div className="logo">aug<em>ury</em></div>
+            <div className="nav-user">
+              <span className="nav-email">{userEmail}</span>
+              <button className="btn btn-ghost" style={{padding:'6px 14px',fontSize:11}} onClick={onLogout}>salir</button>
+            </div>
+          </nav>
+
+          <div className="layout">
+            {/* STEP BAR */}
+            <div className="stepbar">
+              {stepLabels.map((lbl,i)=>(
+                <div key={i} className={`stepbar-item ${step===i+1?"active":step>i+1?"done":""}`}>
+                  <div className="stepbar-num">{step>i+1?"✓":(i+1)}</div>
+                  <span>{lbl}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* ── STEP 1: UPLOAD ── */}
+            {step === 1 && (
+              <div className="card">
+                <div className="card-title">Sube tu dataset</div>
+                <div className={`upload-zone ${dragOver?"drag":""}`}
+                  onClick={()=>fileRef.current.click()}
+                  onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+                  onDragLeave={()=>setDragOver(false)}
+                  onDrop={e=>{e.preventDefault();setDragOver(false);handleFile(e.dataTransfer.files[0]);}}>
+                  <div className="upload-icon">📊</div>
+                  <h3>Arrastra tu archivo aquí</h3>
+                  <p>o haz clic para seleccionar desde tu equipo</p>
+                  <div className="upload-formats">
+                    <span className="fmt-badge">CSV</span>
+                    <span className="fmt-badge">Excel .xlsx</span>
+                    <span className="fmt-badge">Separador automático</span>
+                    <span className="fmt-badge">Cualquier encoding</span>
+                  </div>
+                  <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls"
+                    onChange={e=>handleFile(e.target.files[0])} />
+                </div>
+                {loading === "analyze" && (
+                  <div style={{marginTop:14,display:'flex',alignItems:'center',gap:10,fontFamily:'var(--mono)',fontSize:12,color:'var(--muted2)'}}>
+                    <span className="spinner"/> Leyendo y analizando columnas…
+                  </div>
+                )}
+                {logs.length>0 && <div className="log">{logs.map((l,i)=><div key={i} className={l.type}>&gt; {l.msg}</div>)}</div>}
+                <p className="hint" style={{marginTop:14}}>
+                  Compatible con clasificación (churn, fraude, diagnóstico) y regresión (precios, demanda, ventas). El encoding y separador se detectan solos.
+                </p>
+              </div>
+            )}
+
+            {/* ── STEP 2: CONFIGURE ── */}
+            {step === 2 && analysis && (
+              <>
+                {/* Normalization notices */}
+                {normReport?.warnings?.map((w,i)=>(
+                  <div key={i} className="notice notice-info">ℹ {w}</div>
+                ))}
+
+                <div className="card">
+                  <div className="card-title">Elige el target y configura</div>
+
+                  <p style={{color:'var(--muted2)',fontSize:12,marginBottom:18,lineHeight:1.7}}>
+                    <strong style={{color:'var(--text)'}}>Clic izquierdo</strong> para seleccionar la columna a predecir ·
+                    {" "}<strong style={{color:'var(--text)'}}>Clic derecho</strong> para ignorar una columna
+                  </p>
+
+                  <div className="col-grid">
+                    {analysis.column_info.map(col=>{
+                      const isSugg = suggestions.some(s=>s.column===col.name);
+                      return (
+                        <div key={col.name}
+                          className={`col-card ${targetCol===col.name?"target":""} ${droppedCols.includes(col.name)?"dropped":""} ${isSugg&&!droppedCols.includes(col.name)?"suggested":""}`}
+                          onClick={()=>{if(!droppedCols.includes(col.name))setTargetCol(col.name);}}
+                          onContextMenu={e=>{e.preventDefault();toggleDrop(col.name);}}>
+                          <div className="col-name" title={col.name}>{col.name}</div>
+                          <div className="col-meta">
+                            <span className={`col-badge ${badgeCls(col.type)}`}>{badgeLbl(col.type)}</span>
+                            <span style={{fontSize:10,color:'var(--muted)',fontFamily:'var(--mono)'}}>{col.n_unique} únicos</span>
+                          </div>
+                          <div className="col-samples">{col.samples.join(", ")}</div>
+                          {col.missing>0 && <div className="col-missing">⚠ {col.missing} vacíos</div>}
+                          {targetCol===col.name && <div style={{marginTop:7}}><span className="tag">★ target</span></div>}
+                          {droppedCols.includes(col.name) && <div style={{marginTop:5,fontSize:10,color:'var(--muted)',fontFamily:'var(--mono)'}}>ignorada</div>}
+                          {isSugg&&!droppedCols.includes(col.name)&&<div style={{fontSize:9,color:'var(--warn)',fontFamily:'var(--mono)',marginTop:4}}>⚠ sospechosa</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {suggestions.length>0 && (
+                    <div className="suggest-panel">
+                      <div className="suggest-header">⚠ {suggestions.length} columnas posiblemente irrelevantes</div>
+                      {suggestions.map(s=>(
+                        <div key={s.column} className="suggest-row">
+                          <div>
+                            <div style={{marginBottom:2}}>{s.column}</div>
+                            <div style={{color:'var(--muted)',fontSize:10}}>{s.reason}</div>
+                          </div>
+                          <div style={{color:'var(--warn)',fontFamily:'var(--mono)',fontSize:11}}>{(s.confidence*100).toFixed(0)}%</div>
+                        </div>
+                      ))}
+                      <button className="btn btn-ghost" style={{width:'100%',marginTop:12,fontSize:11}}
+                        onClick={()=>setDropped(d=>[...new Set([...d,...suggestions.map(s=>s.column)])])}>
+                        🎯 Excluir todas las sugerencias
+                      </button>
+                    </div>
+                  )}
+
+                  {targetCol && (
+                    <div className="target-banner">
+                      <span className="tag">★ target</span>
+                      <span style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--accent)'}}><strong>{targetCol}</strong></span>
+                      <span style={{color:'var(--border2)'}}>·</span>
+                      <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted2)'}}>
+                        features: {analysis.column_info.filter(c=>c.name!==targetCol&&!droppedCols.includes(c.name)).map(c=>c.name).join(", ")}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Algorithm selector */}
+                  <div style={{marginTop:22}}>
+                    <div style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--muted2)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.08em',display:'flex',alignItems:'center',gap:10}}>
+                      Algoritmo
+                      {detectedTask && (
+                        <span style={{textTransform:'none',letterSpacing:0,color:detectedTask==="regression"?'var(--accent2)':'var(--accent)',fontSize:11}}>
+                          ⚡ {detectedTask==="regression"?"regresión detectada":"clasificación detectada"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="algo-group">
+                      {filteredAlgos.map(a=>(
+                        <button key={a.id} className={`algo-btn ${algorithm===a.id?"active":""}`} onClick={()=>setAlgorithm(a.id)}>{a.label}</button>
+                      ))}
+                    </div>
+                    {detectedTask && (
+                      <div style={{marginTop:8,fontFamily:'var(--mono)',fontSize:10,color:'var(--muted)'}}>
+                        Mostrando algoritmos de {detectedTask==="regression"?"regresión":"clasificación"}.{" "}
+                        <span style={{color:'var(--accent2)',cursor:'pointer',textDecoration:'underline'}}
+                          onClick={()=>setDetectedTask(d=>d==="regression"?"classification":"regression")}>
+                          Ver {detectedTask==="regression"?"clasificación":"regresión"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Train button + progress */}
+                  <div style={{marginTop:22,display:'flex',gap:12,flexWrap:'wrap'}}>
+                    <button className="btn btn-primary" disabled={!targetCol||loading==="train"} onClick={handleTrain}>
+                      {loading==="train"
+                        ? <><span className="spinner"/> Entrenando…</>
+                        : `→ Entrenar con "${targetCol||"?"}"` }
+                    </button>
+                    <button className="btn btn-ghost" onClick={reset}>← Cambiar archivo</button>
+                  </div>
+
+                  {/* Progress bar */}
+                  {loading==="train" && (
+                    <div className="train-progress">
+                      <div className="train-stages">
+                        {STAGES.map((s,i)=>(
+                          <div key={s.id} className={`train-stage ${i<stageIdx?"done":i===stageIdx?"active":""}`}>
+                            <div className="train-stage-dot">{i<stageIdx?"✓":i+1}</div>
+                            <div className="train-stage-lbl">{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="train-bar-wrap">
+                        <div className={`train-bar-fill ${trainProgress<100&&trainProgress>0?"indeterminate":""}`}
+                          style={{width:`${trainProgress}%`}} />
+                      </div>
+                      <div className="train-status-row">
+                        <span>{trainPhase}</span>
+                        <span className="train-timer">{trainElapsed}s</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {logs.length>0 && <div className="log">{logs.map((l,i)=><div key={i} className={l.type}>&gt; {l.msg}</div>)}</div>}
+                </div>
+
+                {/* Preview */}
+                <div className="card">
+                  <div className="card-title">Vista previa</div>
+                  <div className="preview-wrap">
+                    <table>
+                      <thead><tr>{Object.keys(analysis.preview[0]||{}).map(k=><th key={k}>{k}</th>)}</tr></thead>
+                      <tbody>
+                        {analysis.preview.map((row,i)=>(
+                          <tr key={i}>{Object.values(row).map((v,j)=><td key={j}>{String(v)}</td>)}</tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── STEPS 3 & 4: METRICS + PREDICT ── */}
+            {(step===3||step===4) && metrics && (
+              <>
+                {/* Algorithm note */}
+                {metrics.algorithm_note && <div className="notice notice-info">⚡ {metrics.algorithm_note}</div>}
+
+                {/* Metrics card */}
+                <div className="card">
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+                    <div className="card-title" style={{marginBottom:0}}>Métricas del modelo</div>
+                    <div style={{display:'flex',gap:8}}>
+                      {metrics.algorithm_label && <span className="tag tag-blue">{metrics.algorithm_label}</span>}
+                      {metrics.task_type && <span className="tag" style={{background:'rgba(79,255,176,.07)'}}>{metrics.task_type}</span>}
+                    </div>
+                  </div>
+
+                  {isRegression ? (
+                    <div className="metrics-grid">
+                      <div className="metric"><div className="metric-val">{metrics.r2?.toFixed(3)}</div><div className="metric-lbl">R²</div></div>
+                      <div className="metric"><div className="metric-val">{Math.round(metrics.rmse).toLocaleString("es")}</div><div className="metric-lbl">RMSE</div></div>
+                      <div className="metric"><div className="metric-val">{Math.round(metrics.mae).toLocaleString("es")}</div><div className="metric-lbl">MAE</div></div>
+                      <div className="metric"><div className="metric-val">{metrics.total_samples.toLocaleString("es")}</div><div className="metric-lbl">Muestras</div></div>
+                      <div className="metric"><div className="metric-val">{metrics.feature_cols.length}</div><div className="metric-lbl">Features</div></div>
+                    </div>
+                  ) : (
+                    <div className="metrics-grid">
+                      <div className="metric"><div className="metric-val">{(metrics.accuracy*100).toFixed(1)}%</div><div className="metric-lbl">Accuracy</div></div>
+                      <div className="metric"><div className="metric-val">{metrics.total_samples.toLocaleString("es")}</div><div className="metric-lbl">Muestras</div></div>
+                      <div className="metric"><div className="metric-val">{metrics.classes.length}</div><div className="metric-lbl">Clases</div></div>
+                      <div className="metric"><div className="metric-val">{metrics.feature_cols.length}</div><div className="metric-lbl">Features</div></div>
+                    </div>
+                  )}
+
+                  {(metrics.cv_accuracy_mean!=null||metrics.cv_r2_mean!=null) && (
+                    <div className="cv-row">
+                      Validación cruzada (5-fold) →{" "}
+                      {isRegression
+                        ? <><span>R² medio: {metrics.cv_r2_mean?.toFixed(3)}</span> ± {metrics.cv_r2_std?.toFixed(3)}</>
+                        : <><span>accuracy media: {(metrics.cv_accuracy_mean*100).toFixed(1)}%</span> ± {(metrics.cv_accuracy_std*100).toFixed(1)}%</>}
+                    </div>
+                  )}
+
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:28}}>
+                    {/* Feature importances */}
+                    <div>
+                      <div style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--muted2)',marginBottom:14,textTransform:'uppercase',letterSpacing:'.07em'}}>Importancia de features</div>
+                      {Object.entries(metrics.feature_importances).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,val])=>(
+                        <div className="feat-row" key={name}>
+                          <div className="feat-name" title={name}>{name}</div>
+                          <div className="feat-bg"><div className="feat-fill" style={{width:`${(val/featMax)*100}%`}}/></div>
+                          <div className="feat-val">{(val*100).toFixed(1)}%</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right panel: distribution or stats */}
+                    <div>
+                      <div style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--muted2)',marginBottom:14,textTransform:'uppercase',letterSpacing:'.07em'}}>
+                        {isRegression ? "Estadísticas del modelo" : `Distribución — ${metrics.target_col}`}
+                      </div>
+                      {isRegression ? (
+                        <div className="stats-kv">
+                          {[
+                            ["R² (test set)", metrics.r2?.toFixed(4)],
+                            ["RMSE",          Math.round(metrics.rmse)?.toLocaleString("es")],
+                            ["MAE",           Math.round(metrics.mae)?.toLocaleString("es")],
+                            ["CV R² (medio)", metrics.cv_r2_mean?.toFixed(4)],
+                            ["Muestras train",metrics.train_samples?.toLocaleString("es")],
+                            ["Muestras test", metrics.test_samples?.toLocaleString("es")],
+                          ].map(([k,v])=>(
+                            <div key={k} className="stats-kv-row">
+                              <span className="stats-key">{k}</span>
+                              <span className="stats-val">{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        Object.entries(metrics.target_distribution).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([cls,cnt])=>(
+                          <div className="dist-row" key={cls}>
+                            <div className="dist-label" title={cls}>{cls}</div>
+                            <div className="dist-bg"><div className="dist-fill" style={{width:`${(cnt/distTotal)*100}%`}}/></div>
+                            <div className="dist-cnt">{cnt}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{marginTop:24,display:'flex',gap:12}}>
+                    <button className="btn btn-ghost" onClick={()=>setStep(2)}>← Cambiar target</button>
+                    <button className="btn btn-danger" onClick={reset}>⟳ Nuevo dataset</button>
+                  </div>
+                </div>
+
+                {/* ── Predict form ── */}
+                <div className="card">
+                  <div className="card-title">Predicción individual</div>
+                  <p style={{color:'var(--muted2)',fontSize:12,marginBottom:20,lineHeight:1.7}}>
+                    Ingresa los valores y obtén la predicción de{" "}
+                    <strong style={{color:'var(--text)'}}>"{metrics.target_col}"</strong> al instante.
+                  </p>
+                  <div className="predict-grid">
+                    {metrics.feature_cols.map(col=>{
+                      const info    = colInfo(col);
+                      const uniques = featureUniques[col];
+                      const options = !info||info.type!=="categorical"?[]:uniques||[];
+                      return (
+                        <div className="field" key={col}>
+                          <label>
+                            {col}
+                            {info && <span style={{marginLeft:6}} className={`col-badge ${badgeCls(info.type)}`}>{badgeLbl(info.type)}</span>}
+                          </label>
+                          {info?.type==="categorical"&&uniques&&uniques.length<=4 ? (
+                            <select value={formData[col]||""} onChange={e=>setFormData(f=>({...f,[col]:e.target.value}))}>
+                              <option value="">— elige —</option>
+                              {uniques.filter(s=>s!=="missing").map(s=><option key={s} value={s}>{s}</option>)}
+                            </select>
+                          ) : info?.type==="categorical"&&uniques&&uniques.length>4 ? (
+                            <div className="autocomplete-wrapper">
+                              <input type="text"
+                                placeholder={`Buscar entre ${uniques.filter(u=>u!=="missing").length} opciones…`}
+                                value={formData[col]||""}
+                                onChange={e=>{setFormData(f=>({...f,[col]:e.target.value}));setOpenAuto(e.target.value?col:null);}}
+                                onFocus={()=>formData[col]&&setOpenAuto(col)}
+                                onBlur={()=>setTimeout(()=>setOpenAuto(null),200)}
+                                onKeyDown={e=>{
+                                  if(e.key==="Enter"){
+                                    const v=formData[col];
+                                    if(v&&!uniques.map(u=>u.toLowerCase()).includes(v.toLowerCase())){setFormData(f=>({...f,[col]:""}));log(`"${v}" no válido para ${col}`,"err");}
+                                    setOpenAuto(null);
+                                  }
+                                }}/>
+                              {openAuto===col&&formData[col]&&(
+                                <div className="autocomplete-options">
+                                  {uniques.filter(u=>u!=="missing"&&u.toLowerCase().includes((formData[col]||"").toLowerCase())).slice(0,8).map(u=>(
+                                    <div key={u} className={`autocomplete-option ${formData[col]?.toLowerCase()===u.toLowerCase()?"selected":""}`}
+                                      onClick={()=>{setFormData(f=>({...f,[col]:u}));setOpenAuto(null);}}>
+                                      {u}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <input type={info?.type==="numeric"?"number":"text"}
+                              placeholder={info?.samples?.[0]||"valor"}
+                              value={formData[col]||""}
+                              onChange={e=>setFormData(f=>({...f,[col]:e.target.value}))}/>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{marginTop:24}}>
+                    <button className="btn btn-primary" disabled={loading==="predict"} onClick={handlePredict}
+                      style={{padding:'12px 28px',fontSize:13}}>
+                      {loading==="predict" ? <><span className="spinner"/> Calculando…</> : `→ Predecir "${metrics.target_col}"`}
+                    </button>
+                  </div>
+                  {logs.length>0 && <div className="log">{logs.map((l,i)=><div key={i} className={l.type}>&gt; {l.msg}</div>)}</div>}
+                </div>
+
+                {/* ── Batch predict ── */}
+                <div className="card">
+                  <div className="card-title">Predicción en lote</div>
+                  <p style={{color:'var(--muted2)',fontSize:12,marginBottom:12,lineHeight:1.7}}>
+                    Sube un CSV con las columnas de features y descarga las predicciones completas.
+                  </p>
+                  <div className={`batch-zone ${batchFile?"has-file":""}`} onClick={()=>batchRef.current.click()}>
+                    <input ref={batchRef} type="file" accept=".csv,.xlsx,.xls" style={{display:'none'}} onChange={e=>setBatchFile(e.target.files[0])}/>
+                    <span style={{fontFamily:'var(--mono)',fontSize:12,color:batchFile?'var(--accent2)':'var(--muted2)'}}>
+                      {batchFile ? `📄 ${batchFile.name}` : "Clic para seleccionar archivo…"}
+                    </span>
+                  </div>
+                  <div style={{marginTop:14}}>
+                    <button className="btn btn-blue" disabled={!batchFile||batchLoading} onClick={handleBatchPredict}>
+                      {batchLoading ? <><span className="spinner"/> Procesando…</> : "↓ Descargar predicciones CSV"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── STEP 4: RESULT OVERLAY ── */}
+            {step===4 && prediction && (
+              <div className="result-overlay" onClick={e=>{if(e.target===e.currentTarget)setStep(3);}}>
+                <div className={`result-modal ${isRegression?"reg":"cls"}`}>
+
+                  {isRegression ? (
+                    <>
+                      <div className="result-chip reg">Regresión · {metrics.algorithm_label}</div>
+                      <div className="result-target-label">{metrics.target_col}</div>
+                      <div className="result-big-value reg">
+                        {typeof prediction.prediction==="number"
+                          ? prediction.prediction.toLocaleString("es",{minimumFractionDigits:2,maximumFractionDigits:2})
+                          : prediction.prediction}
+                      </div>
+                      <div className="result-confidence">
+                        Error esperado ±<strong>{Math.round(metrics.rmse).toLocaleString("es")}</strong>
+                        {" "}(RMSE) · R² <strong>{metrics.r2?.toFixed(3)}</strong>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="result-chip cls">Clasificación · {metrics.algorithm_label}</div>
+                      <div className="result-target-label">{metrics.target_col}</div>
+                      <div className="result-big-value cls">{prediction.prediction}</div>
+                      <div className="result-confidence">
+                        Confianza <strong>{(prediction.confidence*100).toFixed(1)}%</strong>
+                      </div>
+                      {prediction.probabilities && (
+                        <div className="prob-list">
+                          {Object.entries(prediction.probabilities).sort((a,b)=>b[1]-a[1]).map(([cls,p])=>(
+                            <div className="prob-row" key={cls}>
+                              <div className="prob-cls" title={cls}>{cls}</div>
+                              <div className="prob-bg"><div className={`prob-fill ${cls===topClass?"top":"rest"}`} style={{width:`${p*100}%`}}/></div>
+                              <div className="prob-pct">{(p*100).toFixed(1)}%</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div className="result-divider"/>
+                  <div className="result-actions">
+                    <button className="btn btn-primary" style={{padding:'11px 28px'}} onClick={()=>setStep(3)}>← Predecir otro</button>
+                    <button className="btn btn-ghost" onClick={reset}>⟳ Nuevo dataset</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
